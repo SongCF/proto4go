@@ -49,7 +49,10 @@ func main() {
 	}
 
 	inDir := os.Args[2]
-	outDir := os.Args[4]
+	outDir, err := filepath.Abs(os.Args[4])
+	check(err)
+	//fmt.Println("out dir1: ", os.Args[4])
+	//fmt.Println("out dir2: ", outDir)
 
 	protoFileL, err := WalkDir(inDir, SUFFIX)
 	if err != nil {
@@ -66,8 +69,15 @@ func parse(fileL *list.List, outDir string) {
 	cmdMap := make(map[int]*Msg)
 	for e := fileL.Front(); e != nil; e = e.Next() {
 		// do something with e.Value
-		fmt.Printf("parse file: %v\n", e.Value)
-		parseFile(e.Value.(string), &cmdMap, outDir)
+		fileName := e.Value.(string)
+		fmt.Printf("parse file: %v\n", fileName)
+		// gen *.pb.go
+
+		command := exec.Command("protoc", "--go_out=.", fileName)
+		err := command.Run()
+		check(err)
+		// parse file
+		parseFile(fileName, &cmdMap)
 	}
 	keys := make([]int, 0)
 	for k := range cmdMap {
@@ -80,18 +90,13 @@ func parse(fileL *list.List, outDir string) {
 	writeCSV(keys, &cmdMap, outDir)
 }
 
-func parseFile(fileName string, cmdMap *map[int]*Msg, outDir string) {
+func parseFile(fileName string, cmdMap *map[int]*Msg) {
 	f, err := os.Open(fileName)
 	defer f.Close()
 	if err != nil {
 		fmt.Print("Error: parse error!")
 		panic(err)
 	}
-
-	// gen *.pb.go
-	command := exec.Command("protoc", "--go_out="+outDir, fileName)
-	err = command.Run()
-	check(err)
 
 	buf := bufio.NewReader(f)
 	lastLine := ""
