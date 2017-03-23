@@ -3,33 +3,32 @@
 // https://github.com/golang/protobuf
 //
 
-
 package main
 
 import (
+	"bufio"
 	"container/list"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strings"
-	"bufio"
-	"io"
-	"strconv"
-	"sort"
 	"os/exec"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 const (
-	SUFFIX = ".proto"
-	CMD_FIX = "// cmd:"
-	MSG_FIX = "message "
-	DESCRIBE_FIX = "// "
+	SUFFIX    = ".proto"
+	CMD_FLAG  = "// cmd:"
+	MSG_FLAG  = "message "
+	DESC_FLAG = "// "
 	FILE_NAME = "msgcode"
 )
 
 type Msg struct {
-	cmd string
+	cmd  string
 	name string
 	desc string
 }
@@ -51,8 +50,9 @@ func main() {
 	inDir := os.Args[2]
 	outDir, err := filepath.Abs(os.Args[4])
 	check(err)
+	outDir = strings.Replace(outDir, "\\", "/", -1)
 	//fmt.Println("out dir1: ", os.Args[4])
-	//fmt.Println("out dir2: ", outDir)
+	fmt.Println("out dir2: ", outDir)
 
 	protoFileL, err := WalkDir(inDir, SUFFIX)
 	if err != nil {
@@ -67,14 +67,21 @@ func main() {
 
 func parse(fileL *list.List, outDir string) {
 	cmdMap := make(map[int]*Msg)
-	for e := fileL.Front(); e != nil; e = e.Next() {
-		// do something with e.Value
-		fileName := e.Value.(string)
+	for elem := fileL.Front(); elem != nil; elem = elem.Next() {
+		// do something with elem.Value
+		fileName := elem.Value.(string)
 		fmt.Printf("parse file: %v\n", fileName)
 		// gen *.pb.go
-
-		command := exec.Command("protoc", "--go_out=.", fileName)
-		err := command.Run()
+		workDir := filepath.Dir(fileName)
+		curDir := getCurrentDirectory()
+		err := os.Chdir(workDir)
+		check(err)
+		base := filepath.Base(fileName)
+		command := exec.Command("protoc", "--go_out="+outDir, base)
+		//fmt.Printf("command: %v\n", command)
+		err = command.Run()
+		check(err)
+		err = os.Chdir(curDir)
 		check(err)
 		// parse file
 		parseFile(fileName, &cmdMap)
@@ -114,43 +121,44 @@ func parseFile(fileName string, cmdMap *map[int]*Msg) {
 		}
 
 		//parse cmd
-		idx := strings.Index(line, CMD_FIX)
+		idx := strings.Index(line, CMD_FLAG)
 		if idx < 0 {
 			lastLine = line
 			continue
 		}
-		cmd := line[idx+len(CMD_FIX):len(line)-1]
+		cmd := line[idx+len(CMD_FLAG) : len(line)-1]
 		id, err := strconv.Atoi(cmd)
-		if err != nil{
+		if err != nil {
 			fmt.Println("Error format!")
 			panic(err)
 		}
 		//parse message
 		line, err = buf.ReadString('\n')
-		if err != nil{
+		if err != nil {
 			fmt.Println("Error format!")
 			panic(err)
 		}
-		idx = strings.Index(line, MSG_FIX)
+		idx = strings.Index(line, MSG_FLAG)
 		if idx < 0 {
 			fmt.Println("Error format!")
 			panic(line)
 		}
 		idx2 := strings.Index(line, " {")
-		msg := "\"" + line[idx+len(MSG_FIX):idx2] + "\""
+		msg := "\"" + line[idx+len(MSG_FLAG):idx2] + "\""
 		//parse describe
-		idx = strings.Index(tmpLine, DESCRIBE_FIX)
+		idx = strings.Index(tmpLine, DESC_FLAG)
 		des := ""
 		if idx >= 0 {
-			des = tmpLine[idx+len(DESCRIBE_FIX):len(tmpLine)-1]
+			des = tmpLine[idx+len(DESC_FLAG) : len(tmpLine)-1]
 		}
 
+		// check duplicate
 		if _, ok := (*cmdMap)[id]; ok {
 			fmt.Println("Error: duplicate cmd!")
 			panic("Error: duplicate cmd!")
 		}
 		(*cmdMap)[id] = &Msg{
-			cmd: cmd,
+			cmd:  cmd,
 			name: msg,
 			desc: des,
 		}
@@ -162,13 +170,14 @@ func parseFile(fileName string, cmdMap *map[int]*Msg) {
 // walk dir and sub-dir, get all files with suffix
 func WalkDir(dirPth, suffix string) (*list.List, error) {
 	files := list.New()
-	suffix = strings.ToUpper(suffix)                                                      //ignore
-	err := filepath.Walk(dirPth, func(filename string, fi os.FileInfo, err error) error { //遍历目录
+	suffix = strings.ToUpper(suffix)
+	err := filepath.Walk(dirPth, func(filename string, fi os.FileInfo, err error) error {
 		if fi.IsDir() {
 			return nil
 		}
 		if strings.HasSuffix(strings.ToUpper(fi.Name()), suffix) {
-			files.PushBack(filename)
+			absName := getAbsName(filename)
+			files.PushBack(absName)
 		}
 		return nil
 	})
@@ -195,12 +204,11 @@ func ListDir(dirPth string, suffix string) (*list.List, error) {
 	return files, nil
 }
 
-
 func writeCodeFile(keys []int, m *map[int]*Msg, dir string) {
-	fileName := dir + "/" + FILE_NAME +".go"
+	fileName := dir + "/" + FILE_NAME + ".go"
 	fmt.Printf("write map file: %v\n", fileName)
 
-	f, err := os.OpenFile(fileName, os.O_WRONLY | os.O_CREATE, 0666)
+	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 	defer f.Close()
 	if err != nil {
 		fmt.Println("Error: open write file failed!")
@@ -255,10 +263,10 @@ func writeCodeFile(keys []int, m *map[int]*Msg, dir string) {
 }
 
 func writeCSV(keys []int, m *map[int]*Msg, dir string) {
-	fileName := dir + "/" + FILE_NAME +".csv"
+	fileName := dir + "/" + FILE_NAME + ".csv"
 	fmt.Printf("write csv file: %v\n", fileName)
 
-	f, err := os.OpenFile(fileName, os.O_WRONLY | os.O_CREATE, 0666)
+	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 	defer f.Close()
 	if err != nil {
 		fmt.Println("Error: open write file failed!")
@@ -277,4 +285,19 @@ func check(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getCurrentDirectory() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println("Error: get current directory failed!")
+		panic(err)
+	}
+	return strings.Replace(dir, "\\", "/", -1)
+}
+
+func getAbsName(file string) string {
+	abs, err := filepath.Abs(file)
+	check(err)
+	return strings.Replace(abs, "\\", "/", -1)
 }
