@@ -4,7 +4,18 @@ proto4go
 proto generate tool for go, included protoc, protoc-gen-go.
 
 1. generate `*.pb.go` by protoc and protoc-gen-go.
-2. generate `msgcode.go` which define the map of code(int) to msg(string) and msg(string) to code(int).
+2. generate `msgcode.go` which define the map of code(int) to msg(string) and msg(string) to code(int), such as:
+```
+var Code = map[string]int{
+	"heartbeat_req": 20061, // heart beat
+	"heartbeat_ack": 20062, // heart beat response
+}
+
+var RCode = map[int]string{
+	20061: "heartbeat_req", // heart beat
+	20062: "heartbeat_ack", // heart beat response
+}
+```
 3. generate `msgcode.csv` files
 
 
