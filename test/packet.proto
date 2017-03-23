@@ -11,10 +11,19 @@ message packet {
 
 
 // heart beat
-// cmd:20061
+// cmd:101
 message heartbeat_req {
 }
 // heart beat response
-// cmd:20062
+// cmd:102
 message heartbeat_ack {
+}
+
+// login
+// cmd:20061
+message login_req {
+}
+// login response
+// cmd:20062
+message login_ack {
 }

@@ -1,3 +1,5 @@
 id,name,desc,
-20061,"heartbeat_req",heart beat,
-20062,"heartbeat_ack",heart beat response,
+101,heartbeat_req,heart beat,
+102,heartbeat_ack,heart beat response,
+20061,login_req,login,
+20062,login_ack,login response,
