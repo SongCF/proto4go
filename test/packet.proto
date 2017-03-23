@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+package pb;
+
+message packet {
+  required int32 cmd = 1;
+  required int32 vsn = 2;
+  required bytes payload = 3;
+  optional bytes service = 4;
+}
+
+
+// heart beat
+// cmd:20061
+message heartbeat_req {
+}
+// heart beat response
+// cmd:20062
+message heartbeat_ack {
+}
