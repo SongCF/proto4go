@@ -35,5 +35,6 @@ Not tested in Linux system
 
 # sample
 
-1. `go run main.go -i ./test -o ./test`
-2. will generate these files: `packet.pb.go`,`msgcode.go`,`msgcode.csv`
+1. delete these files: `test/packet.pb.go`,`test/msgcode.go`,`test/msgcode.csv`
+2. `go run main.go -i ./test -o ./test`
+3. will generate these files: `packet.pb.go`,`msgcode.go`,`msgcode.csv`
