@@ -57,7 +57,7 @@ func writeCode(keys []int, m *map[int]*Msg, dir string) {
 	code := "var Code = map[string]int{\n"
 	rcode := "var RCode = map[int]string{\n"
 	cst := "const (\n"
-	handler := "var Handlers = map[int]func(*Session, []byte) (int, *proto.Message) {\n"
+	handler := "var Handlers = map[int]func(*Session, []byte) (int, proto.Message) {\n"
 
 
 	tmpStr := ""
