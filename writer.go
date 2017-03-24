@@ -56,7 +56,7 @@ func writeCode(keys []int, m *map[int]*Msg, dir string) {
 
 	code := "var Code = map[string]int{\n"
 	rcode := "var RCode = map[int]string{\n"
-	cst := "const (\n"
+	cst := fmt.Sprintf("const (\n\tCmd%-21s= %-8s  \n", "None", "-1")
 	handler := "var Handlers = map[int]func(*Session, []byte) (int, proto.Message) {\n"
 
 
