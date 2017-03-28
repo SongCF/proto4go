@@ -25,10 +25,10 @@ func writeCode(keys []int, m *map[int]*Msg, dir string) {
 	head += "// https://github.com/songcf/proto4go\n"
 	head += "//\n\n"
 	head += "package pb\n\n"
-	head += "import (\n"
-	head += "\t//. \"github.com/songcf/gateway/session\" //your session package\n"
-	head += "\t\"github.com/golang/protobuf/proto\"\n"
-	head += ")\n\n\n"
+	//head += "import (\n"
+	//head += "\t//. \"github.com/songcf/gateway/session\" //your session package\n"
+	//head += "\t\"github.com/golang/protobuf/proto\"\n"
+	//head += ")\n\n\n"
 	_, e := f.WriteString(head)
 	check(e)
 
